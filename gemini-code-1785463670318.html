@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>Deadliest Draw | India's Big Four</title>
+    <!-- Google Fonts: Google Sans Flex, Plus Jakarta Sans, Inter, Cinzel & Lora for card interior -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-page: #ffffff;
+            --card-paper: #f4efdf;
+            --card-inner: #f9f5e9;
+            --text-dark: #1a1a1a;
+            
+            /* Theme Colors */
+            --krait-green: #2d452f;
+            --viper-red: #8b3a2f;
+            --cobra-blue: #1c365d;
+            --russell-grey: #4a4b4c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Google Sans Flex', 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background-color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #1A1D20;
+            padding: 1.5rem 1rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 1.25rem;
+            z-index: 10;
+        }
+
+        h1 {
+            font-family: 'Google Sans Flex', 'Plus Jakarta Sans', sans-serif;
+            font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #1A1D20;
+            line-height: 1.1;
+        }
+
+        .header-sub {
+            font-family: 'Google Sans Flex', 'Inter', sans-serif;
+            font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+            font-weight: 400;
+            color: #4A5056;
+            margin-top: 0.4rem;
+        }
+
+        /* Compact Stage & Card Dimensions */
+        .stage {
+            position: relative;
+            width: 300px;
+            height: 520px; /* Compact height */
+            perspective: 1200px;
+        }
+
+        /* The Card */
+        .card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--card-paper);
+            border-radius: 12px;
+            box-shadow: 
+                0 2px 8px rgba(0,0,0,0.06),
+                0 12px 28px rgba(0,0,0,0.12);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, box-shadow 0.4s ease;
+            user-select: none;
+            touch-action: none;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            will-change: transform;
+            color: var(--text-dark);
+            padding: 8px;
+        }
+
+        .card:active {
+            cursor: grabbing;
+        }
+
+        /* Inner Borders */
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            border: 1px solid currentColor;
+            border-radius: 6px;
+            position: relative;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-inner::before {
+            content: '';
+            position: absolute;
+            width: calc(100% - 6px);
+            height: calc(100% - 6px);
+            border: 1.5px solid currentColor;
+            top: 2px; left: 2px;
+            pointer-events: none;
+            border-radius: 4px;
+        }
+
+        /* Top Corner Rank */
+        .corner {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+            font-family: 'Cinzel', serif;
+            z-index: 2;
+        }
+
+        .corner .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .corner .suit {
+            font-size: 1.3rem;
+            margin-top: -2px;
+        }
+
+        /* Card Art */
+        .card-art {
+            width: calc(100% - 8px);
+            height: 175px; /* Compact height */
+            margin: 4px auto 0;
+            border: 1.5px solid currentColor;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            background: #eae2d0;
+        }
+
+        .card-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 6px;
+            mix-blend-mode: multiply;
+            filter: contrast(1.12) saturate(1.1);
+        }
+
+        /* Card Content */
+        .card-content {
+            padding: 0.6rem 0.4rem 0.4rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .card-name {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.15;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            width: 75%;
+            margin: 0.25rem auto;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid currentColor;
+        }
+
+        .divider svg {
+            width: 16px;
+            height: 16px;
+            margin: 0 8px;
+            fill: currentColor;
+        }
+
+        /* Stats Table */
+        .stats-table {
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.85rem;
+            font-family: 'Lora', serif;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.12);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 0.35rem;
+            gap: 0.2rem;
+            padding-bottom: 0;
+        }
+
+        .stat-icon {
+            width: 16px;
+            height: 16px;
+            fill: var(--text-dark);
+            margin-right: 8px;
+        }
+
+        .stat-label {
+            flex-grow: 1;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-family: 'Cinzel', serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .stat-row:last-child .stat-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .stat-row:last-child .stat-value {
+            text-transform: uppercase;
+            text-align: center;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Color Themes */
+        .theme-krait { color: var(--krait-green); }
+        .theme-krait .stat-row:last-child .stat-value { color: var(--krait-green); }
+        
+        .theme-viper { color: var(--viper-red); }
+        .theme-viper .stat-row:last-child .stat-value { color: var(--viper-red); }
+        
+        .theme-cobra { color: var(--cobra-blue); }
+        .theme-cobra .stat-row:last-child .stat-value { color: var(--cobra-blue); }
+        
+        .theme-russell { color: var(--russell-grey); }
+        .theme-russell .stat-row:last-child .stat-value { color: var(--text-dark); }
+
+        .stat-icon, .stat-label { color: var(--text-dark); }
+
+        /* Stacking & Discard Logic */
+        .card.in-deck[data-index="0"] { z-index: 4; transform: translate(0, 0) rotate(0deg); opacity: 1; pointer-events: auto; }
+        .card.in-deck[data-index="1"] { z-index: 3; transform: translate(4px, -5px) rotate(1deg); opacity: 0.95; pointer-events: none; }
+        .card.in-deck[data-index="2"] { z-index: 2; transform: translate(-3px, -10px) rotate(-1deg); opacity: 0.9; pointer-events: none; }
+        .card.in-deck[data-index="3"] { z-index: 1; transform: translate(5px, -15px) rotate(2deg); opacity: 0.85; pointer-events: none; }
+
+        .card.discarded {
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1.25rem;
+            z-index: 10;
+        }
+
+        .btn {
+            background: #ffffff;
+            border: 1.5px solid #CBD5E1;
+            color: #4A5056;
+            padding: 0.65rem 1.6rem;
+            font-family: 'Google Sans Flex', 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .btn-primary {
+            background: #1A1D20;
+            border-color: #1A1D20;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #2D3136;
+            border-color: #2D3136;
+            transform: translateY(-1px);
+        }
+
+        .btn:hover:not(:disabled):not(.btn-primary) {
+            background: #F8FAFC;
+            color: #1A1D20;
+            border-color: #94A3B8;
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deadliest Draw</h1>
+        <p class="header-sub">Swipe or click Draw to examine venom profiles of the four culprits</p>
+    </header>
+
+    <div class="stage" id="cardStack">
+
+        <!-- Card 1: Common Indian Krait -->
+        <div class="card in-deck theme-krait" data-card-id="1">
+            <div class="card-inner">
+                <div class="corner"><span class="value">1</span><span class="suit">♣</span></div>
+                <div class="card-art"><img src="./assets/krait.png" alt="Common Indian Krait"></div>
+                <div class="card-content">
+                    <h2 class="card-name">COMMON<br>INDIAN KRAIT</h2>
+                    <div class="divider"><svg viewBox="0 0 24 24"><path d="M12 2L15 12L24 12L16 18L19 28L12 22L5 28L8 18L0 12L9 12Z"/></svg></div>
+                    
+                    <div class="stats-table">
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm-3 8c-.83 0-1.5-.67-1.5-1.5S8.17 7 9 7s1.5.67 1.5 1.5S9.83 10 9 10zm6 0c-.83 0-1.5-.67-1.5-1.5S14.17 7 15 7s1.5.67 1.5 1.5S15.83 10 15 10zm-1 4h-4v-1h4v1z"/></svg>
+                            <span class="stat-label">LD₅₀ (mg/kg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">0.09</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l2 1v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l2-1-10-5zm-1 15H9v-2h2v2zm0-4H9v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
+                            <span class="stat-label">Avg. Yield (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">12.5</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                            <span class="stat-label">Yield Range (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">8 – 20</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <svg class="stat-icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                                Primary Toxicity Type
+                            </span>
+                            <span class="stat-value">POTENT NEUROTOXIC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Saw-scaled Viper -->
+        <div class="card in-deck theme-viper" data-card-id="2">
+            <div class="card-inner">
+                <div class="corner"><span class="value">2</span><span class="suit">♥</span></div>
+                <div class="card-art"><img src="./assets/saw_scaled_viper.png" alt="Saw-scaled Viper"></div>
+                <div class="card-content">
+                    <h2 class="card-name">SAW-SCALED<br>VIPER</h2>
+                    <div class="divider"><svg viewBox="0 0 24 24"><path d="M12 2L15 12L24 12L16 18L19 28L12 22L5 28L8 18L0 12L9 12Z"/></svg></div>
+                    
+                    <div class="stats-table">
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm-3 8c-.83 0-1.5-.67-1.5-1.5S8.17 7 9 7s1.5.67 1.5 1.5S9.83 10 9 10zm6 0c-.83 0-1.5-.67-1.5-1.5S14.17 7 15 7s1.5.67 1.5 1.5S15.83 10 15 10zm-1 4h-4v-1h4v1z"/></svg>
+                            <span class="stat-label">LD₅₀ (mg/kg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">0.15 – 0.24</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l2 1v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l2-1-10-5zm-1 15H9v-2h2v2zm0-4H9v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
+                            <span class="stat-label">Avg. Yield (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">14.0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                            <span class="stat-label">Yield Range (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">5 – 20</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <svg class="stat-icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                                Primary Toxicity Type
+                            </span>
+                            <span class="stat-value">POTENT HEMOTOXIC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Indian Cobra -->
+        <div class="card in-deck theme-cobra" data-card-id="3">
+            <div class="card-inner">
+                <div class="corner"><span class="value">3</span><span class="suit">♠</span></div>
+                <div class="card-art"><img src="./assets/indian_cobra.png" alt="Indian Cobra"></div>
+                <div class="card-content">
+                    <h2 class="card-name">INDIAN<br>COBRA</h2>
+                    <div class="divider"><svg viewBox="0 0 24 24"><path d="M12 2L15 12L24 12L16 18L19 28L12 22L5 28L8 18L0 12L9 12Z"/></svg></div>
+                    
+                    <div class="stats-table">
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm-3 8c-.83 0-1.5-.67-1.5-1.5S8.17 7 9 7s1.5.67 1.5 1.5S9.83 10 9 10zm6 0c-.83 0-1.5-.67-1.5-1.5S14.17 7 15 7s1.5.67 1.5 1.5S15.83 10 15 10zm-1 4h-4v-1h4v1z"/></svg>
+                            <span class="stat-label">LD₅₀ (mg/kg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">0.28 – 0.56</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l2 1v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l2-1-10-5zm-1 15H9v-2h2v2zm0-4H9v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
+                            <span class="stat-label">Avg. Yield (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">190.0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                            <span class="stat-label">Yield Range (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">150 – 250</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <svg class="stat-icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                                Primary Toxicity Type
+                            </span>
+                            <span class="stat-value">POST-SYNAPTIC NEUROTOXIC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Russell's Viper -->
+        <div class="card in-deck theme-russell" data-card-id="4">
+            <div class="card-inner">
+                <div class="corner"><span class="value">4</span><span class="suit">♦</span></div>
+                <div class="card-art"><img src="./assets/russells_viper.png" alt="Russell's Viper"></div>
+                <div class="card-content">
+                    <h2 class="card-name">RUSSELL'S<br>VIPER</h2>
+                    <div class="divider"><svg viewBox="0 0 24 24"><path d="M12 2L15 12L24 12L16 18L19 28L12 22L5 28L8 18L0 12L9 12Z"/></svg></div>
+                    
+                    <div class="stats-table">
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm-3 8c-.83 0-1.5-.67-1.5-1.5S8.17 7 9 7s1.5.67 1.5 1.5S9.83 10 9 10zm6 0c-.83 0-1.5-.67-1.5-1.5S14.17 7 15 7s1.5.67 1.5 1.5S15.83 10 15 10zm-1 4h-4v-1h4v1z"/></svg>
+                            <span class="stat-label">LD₅₀ (mg/kg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">0.40 – 0.75</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l2 1v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l2-1-10-5zm-1 15H9v-2h2v2zm0-4H9v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
+                            <span class="stat-label">Avg. Yield (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">170.0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                            <span class="stat-label">Yield Range (mg)</span>
+                            <span class="stat-value" style="color: var(--text-dark)">130 – 250</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">
+                                <svg class="stat-icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                                Primary Toxicity Type
+                            </span>
+                            <span class="stat-value">CYTOTOXIC &amp; HEMOTOXIC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-secondary" id="collectBtn" disabled>↺ Collect Cards</button>
+        <button class="btn btn-primary" id="drawBtn">🃟 Draw Card</button>
+    </div>
+
+    <script>
+        const cards = Array.from(document.querySelectorAll('.card'));
+        const drawBtn = document.getElementById('drawBtn');
+        const collectBtn = document.getElementById('collectBtn');
+
+        let deck = [0, 1, 2, 3];
+        let discarded = [];
+
+        function updateDeckLayout() {
+            deck.forEach((cardIdx, stackIndex) => {
+                const card = cards[cardIdx];
+                card.classList.remove('discarded');
+                card.classList.add('in-deck');
+                card.style.transform = ''; 
+                card.style.zIndex = '';
+                card.setAttribute('data-index', stackIndex);
+            });
+
+            drawBtn.disabled = deck.length === 0;
+            collectBtn.disabled = discarded.length === 0;
+        }
+
+        function throwToDiscardPile(card) {
+            card.classList.remove('in-deck');
+            card.classList.add('discarded');
+            
+            // Move card neatly to the right
+            const offsetX = window.innerWidth > 600 ? 320 : window.innerWidth / 2 + 40;
+            const randomY = (Math.random() - 0.5) * 20;
+            const randomRot = (Math.random() - 0.5) * 16 + 8;
+            
+            card.style.transform = `translate(${offsetX}px, ${randomY}px) rotate(${randomRot}deg) scale(0.92)`;
+            card.style.zIndex = discarded.length; 
+        }
+
+        function drawCard() {
+            if (deck.length === 0) return;
+
+            const topCardIdx = deck.shift();
+            discarded.push(topCardIdx);
+            
+            const topCard = cards[topCardIdx];
+            throwToDiscardPile(topCard);
+            
+            updateDeckLayout();
+        }
+
+        function collectCards() {
+            if (discarded.length === 0) return;
+            
+            deck = [...discarded.reverse(), ...deck];
+            discarded = [];
+            
+            updateDeckLayout();
+        }
+
+        drawBtn.addEventListener('click', drawCard);
+        collectBtn.addEventListener('click', collectCards);
+
+        // Touch and Drag Logic
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        function handleStart(e) {
+            if (deck.length === 0) return;
+            const topCard = cards[deck[0]];
+            if (e.target.closest('.card') !== topCard) return;
+
+            isDragging = true;
+            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            topCard.style.transition = 'none';
+        }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+            currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            
+            const diffX = currentX - startX;
+            const diffY = currentY - startY;
+            const topCard = cards[deck[0]];
+            
+            topCard.style.transform = `translate(${diffX}px, ${diffY}px) rotate(${diffX * 0.05}deg)`;
+        }
+
+        function handleEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const diffX = currentX - startX;
+            const topCard = cards[deck[0]];
+            
+            topCard.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, box-shadow 0.4s ease';
+
+            if (Math.abs(diffX) > 100) {
+                drawCard();
+            } else {
+                topCard.style.transform = '';
+            }
+            
+            startX = 0;
+            currentX = 0;
+        }
+
+        const stage = document.getElementById('cardStack');
+        stage.addEventListener('touchstart', handleStart, {passive: false});
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('touchend', handleEnd);
+
+        stage.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        updateDeckLayout();
+    </script>
+</body>
+</html>

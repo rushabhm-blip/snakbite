@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Patient Survival Pathway Sankey</title>
+
+  <!-- Google Sans Flex Font per Repository Guidelines -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-canvas: transparent;
+      --font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse 65% 60% at 50% 50%, rgba(6, 32, 20, 0.55) 0%, rgba(3, 18, 11, 0.32) 45%, rgba(2, 12, 7, 0.08) 70%, transparent 90%);
+      overflow: hidden;
+    }
+
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .sankey-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      -webkit-mask-image: radial-gradient(ellipse 80% 74% at 50% 50%, black 50%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.20) 86%, transparent 100%);
+      mask-image: radial-gradient(ellipse 80% 74% at 50% 50%, black 50%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.20) 86%, transparent 100%);
+    }
+
+    canvas#sankeyCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-width: 1400px;
+      max-height: 740px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sankey-wrapper">
+    <!-- Pure Canvas Sankey (Clean, No Top Player Bar) -->
+    <canvas id="sankeyCanvas" width="1400" height="740"></canvas>
+  </div>
+
+  <script>
+  (function() {
+    const canvas = document.getElementById('sankeyCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const LOGICAL_WIDTH = 1400;
+    const LOGICAL_HEIGHT = 740;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = LOGICAL_WIDTH * dpr;
+      canvas.height = LOGICAL_HEIGHT * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Load Character Asset (Walking Indian man)
+    const manImg = new Image();
+    manImg.src = 'assets/walking_man.png';
+    let assetLoaded = false;
+    let spriteNormal = null;
+    let spriteGreen = null;
+    let spriteBlue = null;
+    let spriteBlack = null;
+
+    manImg.onload = () => {
+      assetLoaded = true;
+      createSpriteVariants();
+    };
+
+    // Pre-render color-tinted sprite variants for optimal 60fps performance
+    function createSpriteVariants() {
+      const w = manImg.width;
+      const h = manImg.height;
+
+      function makeTinted(fillColor) {
+        const off = document.createElement('canvas');
+        off.width = w;
+        off.height = h;
+        const octx = off.getContext('2d');
+        octx.drawImage(manImg, 0, 0);
+        octx.globalCompositeOperation = 'source-in';
+        octx.fillStyle = fillColor;
+        octx.fillRect(0, 0, w, h);
+        return off;
+      }
+
+      spriteNormal = manImg;
+      spriteGreen = makeTinted('#10B981');  // Full Recovery: Green
+      spriteBlue = makeTinted('#3B82F6');   // Permanent Disability: Blue
+      spriteBlack = makeTinted('#080808');  // Fatal Outcome: Solid Jet Black
+    }
+
+    // Proportional Color Palette (Dark Theme / Greenish Visual Identity)
+    const PALETTE = {
+      incident: '#64748B',      // Slate 100 people
+      hospital: '#3B82F6',      // Royal Blue (45)
+      healer: '#F59E0B',        // Ochre / Warm Amber (55)
+      timely: '#10B981',        // Emerald Green (40)
+      delayed: '#EA580C',       // Terracotta Orange (40)
+      nocare: '#E11D48',        // Crimson Red (20)
+      recovery: '#10B981',      // Emerald Green (63)
+      disability: '#3B82F6',    // Vibrant Blue (16)
+      fatal: '#080808',         // Solid Jet Black (21)
+
+      // Translucent Flow Ribbon Fills (Always present so complete Sankey is visible)
+      ribbonHospital: 'rgba(59, 130, 246, 0.35)',
+      ribbonHealer: 'rgba(245, 158, 11, 0.30)',
+      ribbonTimely: 'rgba(16, 185, 129, 0.35)',
+      ribbonDelayedHosp: 'rgba(234, 88, 12, 0.30)',
+      ribbonDelayedHeal: 'rgba(234, 88, 12, 0.30)',
+      ribbonNoCare: 'rgba(225, 29, 72, 0.32)',
+      ribbonRecovery: 'rgba(16, 185, 129, 0.38)',
+      ribbonDisability: 'rgba(59, 130, 246, 0.40)',
+      ribbonFatal: 'rgba(14, 18, 22, 0.82)'
+    };
+
+    // Sankey Flow Model: 3px per person = 300px total flow height
+    // Mathematically exact conservation of flow: Inflow == Outflow at every stage
+    const NODES = {
+      // Stage 1: Single starting bar of 100 (No intersection, top 45 to Hospital, bottom 55 to Healer)
+      incident: {
+        x: 75, y: 220, w: 14, h: 300,
+        color: PALETTE.incident,
+        title: "100 People Bitten by a Snake",
+        kicker: "TOTAL INCIDENT",
+        count: 100
+      },
+      // Stage 2: 45 + 55 = 100
+      hospital: {
+        x: 420, y: 130, w: 14, h: 135,
+        color: PALETTE.hospital,
+        title: "Direct Hospital Care — 45",
+        kicker: "HEALTHCARE FIRST",
+        count: 45
+      },
+      healer: {
+        x: 420, y: 440, w: 14, h: 165,
+        color: PALETTE.healer,
+        title: "Traditional Healer First — 55",
+        kicker: "FAITH & DELAY",
+        count: 55
+      },
+      // Stage 3: 40 + 40 + 20 = 100
+      timely: {
+        x: 770, y: 80, w: 14, h: 120,
+        color: PALETTE.timely,
+        title: "Timely ASV — Within 4 Hours",
+        kicker: "CRITICAL WINDOW",
+        count: 40
+      },
+      delayed: {
+        x: 770, y: 310, w: 14, h: 120,
+        color: PALETTE.delayed,
+        title: "Delayed ASV — After 4 Hours",
+        kicker: "VENOM SPREAD",
+        count: 40
+      },
+      nocare: {
+        x: 770, y: 535, w: 14, h: 60,
+        color: PALETTE.nocare,
+        title: "No Effective Medical Care",
+        kicker: "UNTREATED",
+        count: 20
+      },
+      // Stage 4: 63 + 16 + 21 = 100
+      recovery: {
+        x: 1130, y: 60, w: 14, h: 189,
+        color: PALETTE.recovery,
+        title: "Full Recovery — 63",
+        badge: "63 FULL RECOVERY",
+        count: 63
+      },
+      disability: {
+        x: 1130, y: 350, w: 14, h: 48,
+        color: PALETTE.disability,
+        title: "Permanent Disability — 16",
+        badge: "16 PERMANENT DISABILITY (AMPUTATION / BLINDNESS)",
+        count: 16
+      },
+      fatal: {
+        x: 1130, y: 515, w: 14, h: 63,
+        color: PALETTE.fatal,
+        borderColor: '#FFFFFF',
+        title: "Fatal Outcome (Deaths) — 21",
+        badge: "21 LIVES LOST (DEATHS)",
+        count: 21
+      }
+    };
+
+    const FIG_W = 12.0;
+    const FIG_H = 22.5;
+
+    // 100 People Cohort Model
+    // Top 45 people are placed in the upper band (0..45) of Incident -> Hospital
+    // Bottom 55 people are placed in the lower band (45..100) of Incident -> Healer
+    // Zero crossing!
+    const people = [];
+
+    for (let i = 0; i < 100; i++) {
+      let stage2Node, stage3Node, stage4Node;
+      let outcomeType; // 'recovery', 'disability', 'fatal'
+
+      if (i < 39) {
+        stage2Node = 'hospital'; stage3Node = 'timely'; stage4Node = 'recovery';
+        outcomeType = 'recovery';
+      } else if (i === 39) {
+        stage2Node = 'hospital'; stage3Node = 'timely'; stage4Node = 'disability';
+        outcomeType = 'disability';
+      } else if (i < 45) {
+        stage2Node = 'hospital'; stage3Node = 'delayed'; stage4Node = 'recovery';
+        outcomeType = 'recovery';
+      } else if (i < 45 + 22) { // 45..66: Healer -> Delayed -> Recovery (22)
+        stage2Node = 'healer'; stage3Node = 'delayed'; stage4Node = 'recovery';
+        outcomeType = 'recovery';
+      } else if (i < 45 + 22 + 10) { // 67..76: Healer -> Delayed -> Disability (10)
+        stage2Node = 'healer'; stage3Node = 'delayed'; stage4Node = 'disability';
+        outcomeType = 'disability';
+      } else if (i < 45 + 22 + 10 + 8) { // 77..84: Healer -> Delayed -> Fatal (8)
+        stage2Node = 'healer'; stage3Node = 'delayed'; stage4Node = 'fatal';
+        outcomeType = 'fatal';
+      } else if (i < 85 + 2) { // 85..86: Healer -> No Care -> Recovery (2)
+        stage2Node = 'healer'; stage3Node = 'nocare'; stage4Node = 'recovery';
+        outcomeType = 'recovery';
+      } else if (i < 85 + 2 + 5) { // 87..91: Healer -> No Care -> Disability (5)
+        stage2Node = 'healer'; stage3Node = 'nocare'; stage4Node = 'disability';
+        outcomeType = 'disability';
+      } else { // 92..99: Healer -> No Care -> Fatal (13 total: 8+13=21)
+        stage2Node = 'healer'; stage3Node = 'nocare'; stage4Node = 'fatal';
+        outcomeType = 'fatal';
+      }
+
+      // Initial positions: neatly stacked in two distinct, non-overlapping bands
+      let pos0;
+      if (i < 45) {
+        // Upper 45 people: 5 columns x 9 rows inside Y: 222 to 345
+        const col = Math.floor(i / 9);
+        const row = i % 9;
+        pos0 = { x: 105 + col * 14, y: 224 + row * 13.5 };
+      } else {
+        // Lower 55 people: 5 columns x 11 rows inside Y: 350 to 505
+        const relI = i - 45;
+        const col = Math.floor(relI / 11);
+        const row = relI % 11;
+        pos0 = { x: 105 + col * 14, y: 352 + row * 14.0 };
+      }
+
+      const stagger = (i % 5) * 0.08 + Math.floor(i / 10) * 0.04;
+
+      people.push({
+        id: i,
+        stage2Node,
+        stage3Node,
+        stage4Node,
+        outcomeType,
+        stagger,
+        pos0
+      });
+    }
+
+    // Destination Positions
+    // Stage 2
+    people.filter(p => p.stage2Node === 'hospital').forEach((p, idx) => {
+      p.posHosp = { x: 450 + (idx % 9) * 15, y: 135 + Math.floor(idx / 9) * 16 };
+    });
+    people.filter(p => p.stage2Node === 'healer').forEach((p, idx) => {
+      p.posHeal = { x: 450 + (idx % 11) * 15, y: 445 + Math.floor(idx / 11) * 16 };
+    });
+
+    // Stage 3
+    people.filter(p => p.stage3Node === 'timely').forEach((p, idx) => {
+      p.posTimely = { x: 800 + (idx % 8) * 15, y: 86 + Math.floor(idx / 8) * 16 };
+    });
+    people.filter(p => p.stage3Node === 'delayed').forEach((p, idx) => {
+      p.posDelayed = { x: 800 + (idx % 8) * 15, y: 316 + Math.floor(idx / 8) * 16 };
+    });
+    people.filter(p => p.stage3Node === 'nocare').forEach((p, idx) => {
+      p.posNoCare = { x: 800 + (idx % 5) * 15, y: 540 + Math.floor(idx / 5) * 16 };
+    });
+
+    // Stage 4 (Outcomes Grids)
+    people.filter(p => p.stage4Node === 'recovery').forEach((p, idx) => {
+      p.posFinal = { x: 1160 + (idx % 9) * 15.5, y: 66 + Math.floor(idx / 9) * 16 };
+    });
+    people.filter(p => p.stage4Node === 'disability').forEach((p, idx) => {
+      p.posFinal = { x: 1160 + (idx % 4) * 15.5, y: 354 + Math.floor(idx / 4) * 16 };
+    });
+    people.filter(p => p.stage4Node === 'fatal').forEach((p, idx) => {
+      p.posFinal = { x: 1160 + (idx % 7) * 15.5, y: 520 + Math.floor(idx / 7) * 16 };
+    });
+
+    // Timeline Intervals (Smooth, continuous flow that loops gracefully)
+    const T_STAGE2_START = 1.0;
+    const T_STAGE2_END   = 4.2;
+    const T_STAGE3_START = 5.4;
+    const T_STAGE3_END   = 8.6;
+    const T_STAGE4_START = 9.8;
+    const T_STAGE4_END   = 13.0;
+    const T_HOLD_OUTCOMES= 38.0; // Ample time to examine final states (25 seconds)
+    const T_TOTAL        = 40.0;
+
+    let simTime = 0.0;
+    let lastFrameTime = performance.now();
+
+    // Calculate walker position dividing midway through the step
+    function getMidwayDividedPoint(pStart, pTarget, u, splitStart = 0.35, splitEnd = 0.70) {
+      if (u <= 0) return { x: pStart.x, y: pStart.y };
+      if (u >= 1) return { x: pTarget.x, y: pTarget.y };
+
+      // Continuous horizontal advancement
+      const x = pStart.x + (pTarget.x - pStart.x) * u;
+
+      // Vertical trajectory divides midway between steps
+      let y;
+      if (u < splitStart) {
+        // Before midway: cohort marches straight forward together
+        y = pStart.y;
+      } else if (u > splitEnd) {
+        // After midway: division complete, march straight into target step
+        y = pTarget.y;
+      } else {
+        // Midway: divide and diverge to respective target heights
+        const s = (u - splitStart) / (splitEnd - splitStart);
+        const ease = s * s * (3 - 2 * s);
+        y = pStart.y + (pTarget.y - pStart.y) * ease;
+      }
+
+      return { x, y };
+    }
+
+    // Continuous smooth Bézier ribbon drawer with progressive reveal clipping
+    function drawSankeyBandClipped(x0, y0Top, y0Bot, x1, y1Top, y1Bot, fillColor, progress = 1, strokeColor = null) {
+      if (progress <= 0.005) return;
+      ctx.save();
+
+      // Progressive reveal: clip from x0 to current forward progress
+      if (progress < 0.999) {
+        const clipW = (x1 - x0 + 4) * Math.min(1, Math.max(0, progress));
+        ctx.beginPath();
+        ctx.rect(x0 - 2, 0, clipW, LOGICAL_HEIGHT);
+        ctx.clip();
+      }
+
+      ctx.fillStyle = fillColor;
+
+      const dx = x1 - x0;
+      const cx0 = x0 + dx * 0.48;
+      const cx1 = x1 - dx * 0.48;
+
+      ctx.beginPath();
+      ctx.moveTo(x0, y0Top);
+      ctx.bezierCurveTo(cx0, y0Top, cx1, y1Top, x1, y1Top);
+      ctx.lineTo(x1, y1Bot);
+      ctx.bezierCurveTo(cx1, y1Bot, cx0, y0Bot, x0, y0Bot);
+      ctx.closePath();
+      ctx.fill();
+
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 0.8;
+        ctx.globalAlpha = 0.65;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function render() {
+      // 1. Clear with transparent canvas so dark green card shines through
+      ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+      // Subtle editorial green atmosphere grid lines
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 120; x < LOGICAL_WIDTH; x += 110) {
+        ctx.beginPath();
+        ctx.moveTo(x, 30);
+        ctx.lineTo(x, LOGICAL_HEIGHT - 30);
+        ctx.stroke();
+      }
+
+      // Calculate state for all 100 people
+      const peopleState = people.map(p => {
+        let currentPos = { x: p.pos0.x, y: p.pos0.y };
+        let isWalking = false;
+        let activeLeg = 0;
+        let legProgress = 0;
+        let alpha = 1;
+
+        if (simTime < T_STAGE2_START) {
+          currentPos = { x: p.pos0.x, y: p.pos0.y };
+          activeLeg = 0;
+        } else if (simTime < T_STAGE2_END) {
+          const targetPos = (p.stage2Node === 'hospital') ? p.posHosp : p.posHeal;
+          const duration = T_STAGE2_END - T_STAGE2_START;
+          const tRaw = (simTime - T_STAGE2_START - p.stagger * 0.20) / (duration * 0.86);
+          const u = Math.min(1, Math.max(0, tRaw));
+          
+          currentPos = getMidwayDividedPoint({ x: p.pos0.x + FIG_W, y: p.pos0.y }, targetPos, u, 0.35, 0.70);
+          isWalking = u > 0 && u < 1;
+          activeLeg = 1;
+          legProgress = u;
+        } else if (simTime < T_STAGE3_START) {
+          currentPos = (p.stage2Node === 'hospital') ? p.posHosp : p.posHeal;
+          activeLeg = 2;
+          legProgress = 1;
+        } else if (simTime < T_STAGE3_END) {
+          const startPos = (p.stage2Node === 'hospital') ? p.posHosp : p.posHeal;
+          let targetPos = p.posTimely;
+          if (p.stage3Node === 'delayed') targetPos = p.posDelayed;
+          if (p.stage3Node === 'nocare') targetPos = p.posNoCare;
+
+          const duration = T_STAGE3_END - T_STAGE3_START;
+          const tRaw = (simTime - T_STAGE3_START - p.stagger * 0.20) / (duration * 0.86);
+          const u = Math.min(1, Math.max(0, tRaw));
+
+          currentPos = getMidwayDividedPoint({ x: startPos.x + FIG_W, y: startPos.y }, targetPos, u, 0.35, 0.70);
+          isWalking = u > 0 && u < 1;
+          activeLeg = 3;
+          legProgress = u;
+        } else if (simTime < T_STAGE4_START) {
+          let nodePos;
+          if (p.stage3Node === 'timely') nodePos = p.posTimely;
+          else if (p.stage3Node === 'delayed') nodePos = p.posDelayed;
+          else nodePos = p.posNoCare;
+          currentPos = nodePos;
+          activeLeg = 4;
+          legProgress = 1;
+        } else if (simTime < T_STAGE4_END) {
+          let startPos;
+          if (p.stage3Node === 'timely') startPos = p.posTimely;
+          else if (p.stage3Node === 'delayed') startPos = p.posDelayed;
+          else startPos = p.posNoCare;
+          const targetPos = p.posFinal;
+
+          const duration = T_STAGE4_END - T_STAGE4_START;
+          const tRaw = (simTime - T_STAGE4_START - p.stagger * 0.20) / (duration * 0.86);
+          const u = Math.min(1, Math.max(0, tRaw));
+
+          currentPos = getMidwayDividedPoint({ x: startPos.x + FIG_W, y: startPos.y }, targetPos, u, 0.35, 0.70);
+          isWalking = u > 0 && u < 1;
+          activeLeg = 5;
+          legProgress = u;
+        } else {
+          currentPos = p.posFinal;
+          activeLeg = 6;
+          legProgress = 1;
+        }
+
+        return {
+          person: p,
+          pos: currentPos,
+          isWalking,
+          activeLeg,
+          legProgress,
+          alpha
+        };
+      });
+
+      // 2. Progressive Reveal of Flow Ribbons (Unfurls forward as people walk)
+      // Stage 1 -> 2
+      const rProg1 = (simTime < T_STAGE2_START) ? 0 : Math.min(1, (simTime - T_STAGE2_START) / (T_STAGE2_END - T_STAGE2_START - 0.3));
+      if (rProg1 > 0) {
+        // Incident top slice (y: 220, h: 135) -> Hospital (y: 130, h: 135)
+        drawSankeyBandClipped(89, 220, 355, 420, 130, 265, PALETTE.ribbonHospital, rProg1);
+        // Incident bottom slice (y: 355, h: 165) -> Healer (y: 440, h: 165)
+        drawSankeyBandClipped(89, 355, 520, 420, 440, 605, PALETTE.ribbonHealer, rProg1);
+      }
+
+      // Stage 2 -> 3
+      const rProg2 = (simTime < T_STAGE3_START) ? 0 : Math.min(1, (simTime - T_STAGE3_START) / (T_STAGE3_END - T_STAGE3_START - 0.3));
+      if (rProg2 > 0) {
+        // Hospital top (40) -> Timely ASV (y: 80, h: 120)
+        drawSankeyBandClipped(434, 130, 250, 770, 80, 200, PALETTE.ribbonTimely, rProg2);
+        // Hospital bottom (5) -> Delayed ASV top (y: 310, h: 15)
+        drawSankeyBandClipped(434, 250, 265, 770, 310, 325, PALETTE.ribbonDelayedHosp, rProg2);
+        // Healer top (35) -> Delayed ASV bottom (y: 325, h: 105)
+        drawSankeyBandClipped(434, 440, 545, 770, 325, 430, PALETTE.ribbonDelayedHeal, rProg2);
+        // Healer bottom (20) -> No Care (y: 535, h: 60)
+        drawSankeyBandClipped(434, 545, 605, 770, 535, 595, PALETTE.ribbonNoCare, rProg2);
+      }
+
+      // Stage 3 -> 4 (Outcomes)
+      const rProg3 = (simTime < T_STAGE4_START) ? 0 : Math.min(1, (simTime - T_STAGE4_START) / (T_STAGE4_END - T_STAGE4_START - 0.3));
+      if (rProg3 > 0) {
+        // Timely to Recovery (39)
+        drawSankeyBandClipped(784, 80, 197, 1130, 60, 177, PALETTE.ribbonRecovery, rProg3);
+        // Timely to Disability (1)
+        drawSankeyBandClipped(784, 197, 200, 1130, 350, 353, PALETTE.ribbonDisability, rProg3);
+
+        // Delayed to Recovery (22)
+        drawSankeyBandClipped(784, 310, 376, 1130, 177, 243, PALETTE.ribbonRecovery, rProg3);
+        // Delayed to Disability (10)
+        drawSankeyBandClipped(784, 376, 406, 1130, 353, 383, PALETTE.ribbonDisability, rProg3);
+        // Delayed to Fatal (8)
+        drawSankeyBandClipped(784, 406, 430, 1130, 515, 539, PALETTE.ribbonFatal, rProg3, 'rgba(255, 255, 255, 0.4)');
+
+        // No Care to Recovery (2)
+        drawSankeyBandClipped(784, 535, 541, 1130, 243, 249, PALETTE.ribbonRecovery, rProg3);
+        // No Care to Disability (5)
+        drawSankeyBandClipped(784, 541, 556, 1130, 383, 398, PALETTE.ribbonDisability, rProg3);
+        // No Care to Fatal (13)
+        drawSankeyBandClipped(784, 556, 595, 1130, 539, 578, PALETTE.ribbonFatal, rProg3, 'rgba(255, 255, 255, 0.4)');
+      }
+
+      // 3. Progressive Reveal of Nodes & Typography
+      // Incident node is always present as the starting point
+      drawNodeBar(NODES.incident, 1.0);
+      drawNodeHeader(NODES.incident, "100 People Bitten by a Snake", "100 COMBINED BITES", 1.0);
+
+      // Decision nodes: appear as people arrive at Stage 2
+      const fNode2 = (simTime < T_STAGE2_END - 0.6) ? 0 : Math.min(1, (simTime - (T_STAGE2_END - 0.6)) / 0.6);
+      if (fNode2 > 0) {
+        drawNodeBar(NODES.hospital, fNode2);
+        drawNodeBar(NODES.healer, fNode2);
+        drawNodeHeader(NODES.hospital, "Direct Hospital Care — 45", "45% HEALTHCARE", fNode2);
+        drawNodeHeader(NODES.healer, "Traditional Healer First — 55", "55% DELAY RISK", fNode2);
+      }
+
+      // Timing nodes: appear as people arrive at Stage 3
+      const fNode3 = (simTime < T_STAGE3_END - 0.6) ? 0 : Math.min(1, (simTime - (T_STAGE3_END - 0.6)) / 0.6);
+      if (fNode3 > 0) {
+        drawNodeBar(NODES.timely, fNode3);
+        drawNodeBar(NODES.delayed, fNode3);
+        drawNodeBar(NODES.nocare, fNode3);
+        drawNodeHeader(NODES.timely, "Timely ASV — Within 4 Hours", "TIMELY CARE", fNode3);
+        drawNodeHeader(NODES.delayed, "Delayed ASV — After 4 Hours", "DELAYED TREATMENT", fNode3);
+        drawNodeHeader(NODES.nocare, "No Effective Medical Care", "CRITICAL RISK", fNode3);
+      }
+
+      // Outcome nodes: appear as people arrive at Stage 4
+      const fNode4 = (simTime < T_STAGE4_END - 0.6) ? 0 : Math.min(1, (simTime - (T_STAGE4_END - 0.6)) / 0.6);
+      if (fNode4 > 0) {
+        drawNodeBar(NODES.recovery, fNode4);
+        drawNodeBar(NODES.disability, fNode4);
+        drawNodeBar(NODES.fatal, fNode4);
+        drawOutcomeHeader(NODES.recovery, "Full Recovery — 63", "63 RECOVERED", PALETTE.recovery, fNode4);
+        drawOutcomeHeader(NODES.disability, "Permanent Disability — 16", "16 DISABLED (AMPUTATION / BLINDNESS)", PALETTE.disability, fNode4);
+        drawOutcomeHeader(NODES.fatal, "Fatal Outcome (Deaths) — 21", "21 LIVES LOST (DEATHS)", '#FFFFFF', fNode4);
+      }
+
+      // 4. Draw Individual Figures with Outcome Color Changes
+      peopleState.forEach(s => {
+        if (s.alpha <= 0.01) return;
+
+        ctx.save();
+        ctx.globalAlpha = s.alpha;
+
+        let drawX = s.pos.x;
+        let drawY = s.pos.y;
+
+        if (s.isWalking) {
+          const walkPhase = simTime * 18 + s.person.id * 0.6;
+          drawY -= Math.abs(Math.sin(walkPhase)) * 2.0;
+          const tilt = Math.sin(walkPhase) * 0.04;
+          ctx.translate(drawX + FIG_W * 0.5, drawY + FIG_H);
+          ctx.rotate(tilt);
+          ctx.translate(-(drawX + FIG_W * 0.5), -(drawY + FIG_H));
+        }
+
+        // Determine Figure Tint Color:
+        // As people approach/reach Stage 4, they transform into their final outcome color:
+        // - Deaths: Solid Black with subtle silver rim glow
+        // - Disability: Royal Blue
+        // - Recovery: Emerald Green
+        if (assetLoaded) {
+          if (s.activeLeg >= 5 && s.person.outcomeType === 'fatal') {
+            // Draw with an illuminated silver rim so jet-black figure stands out distinctly against dark green bg
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+            ctx.shadowBlur = 4;
+            ctx.drawImage(spriteBlack || spriteNormal, drawX, drawY, FIG_W, FIG_H);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.drawImage(spriteBlack || spriteNormal, drawX, drawY, FIG_W, FIG_H);
+          } else if (s.activeLeg >= 5 && s.person.outcomeType === 'disability') {
+            ctx.drawImage(spriteBlue || spriteNormal, drawX, drawY, FIG_W, FIG_H);
+          } else if (s.activeLeg >= 5 && s.person.outcomeType === 'recovery') {
+            ctx.drawImage(spriteGreen || spriteNormal, drawX, drawY, FIG_W, FIG_H);
+          } else {
+            ctx.drawImage(spriteNormal, drawX, drawY, FIG_W, FIG_H);
+          }
+        } else {
+          // Fallback vector figure
+          if (s.activeLeg >= 5 && s.person.outcomeType === 'fatal') {
+            ctx.fillStyle = '#080808';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(drawX + FIG_W * 0.5, drawY + 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillRect(drawX + 2, drawY + 8, FIG_W - 4, FIG_H - 8);
+            ctx.strokeRect(drawX + 2, drawY + 8, FIG_W - 4, FIG_H - 8);
+          } else {
+            let fColor = '#F8FAF7';
+            if (s.activeLeg >= 5) {
+              if (s.person.outcomeType === 'recovery') fColor = '#10B981';
+              else if (s.person.outcomeType === 'disability') fColor = '#3B82F6';
+            }
+            ctx.fillStyle = fColor;
+            ctx.beginPath();
+            ctx.arc(drawX + FIG_W * 0.5, drawY + 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(drawX + 2, drawY + 8, FIG_W - 4, FIG_H - 8);
+          }
+        }
+
+        ctx.restore();
+      });
+
+      // Advance Time & Loop smoothly
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      simTime += dt;
+      if (simTime >= T_TOTAL) {
+        simTime = 0.0; // Graceful auto-loop
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    function drawNodeBar(node, alpha) {
+      if (alpha <= 0.01) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = node.color;
+      ctx.beginPath();
+      ctx.rect(node.x, node.y, node.w, node.h); // Crisp sharp rectangular edges
+      ctx.fill();
+
+      // Border highlight (especially clean for black node on dark green background)
+      ctx.strokeStyle = node.borderColor || "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Subtle 45/55 division tick on incident node
+      if (node === NODES.incident) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(node.x - 2, node.y + 135);
+        ctx.lineTo(node.x + node.w + 2, node.y + 135);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawNodeHeader(node, labelText, countBadge, alpha = 1) {
+      if (alpha <= 0.01) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "600 13px 'Google Sans Flex', -apple-system, sans-serif";
+      ctx.fillStyle = "#F8FAF7";
+      ctx.textAlign = "left";
+
+      const textX = node.x;
+      const textY = node.y - 10;
+
+      ctx.fillText(labelText, textX, textY);
+
+      if (countBadge) {
+        ctx.font = "700 10.5px 'Google Sans Flex', -apple-system, sans-serif";
+        ctx.fillStyle = node.color;
+        ctx.fillText(countBadge, textX, textY - 14);
+      }
+      ctx.restore();
+    }
+
+    function drawOutcomeHeader(node, labelText, badgeText, badgeColor, alpha = 1) {
+      if (alpha <= 0.01) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      const textX = node.x;
+      const textY = node.y - 12;
+
+      ctx.font = "700 11px 'Google Sans Flex', -apple-system, sans-serif";
+      ctx.fillStyle = badgeColor;
+      ctx.textAlign = "left";
+      ctx.fillText(badgeText, textX, textY - 14);
+
+      ctx.font = "600 13.5px 'Google Sans Flex', -apple-system, sans-serif";
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(labelText, textX, textY);
+
+      ctx.restore();
+    }
+
+    // Interactive Controls: Click anywhere on canvas or press Space to jump to outcomes or replay
+    canvas.addEventListener('click', () => {
+      if (simTime < T_STAGE4_END) {
+        simTime = T_STAGE4_END + 0.1;
+      } else {
+        simTime = 0.0;
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        simTime = simTime >= T_STAGE4_END ? 0.0 : T_STAGE4_END + 0.1;
+      }
+    });
+
+    // Message listener for scroll sync
+    window.addEventListener('message', function(e) {
+      if (e.data === 'playSankey') {
+        simTime = 0.0;
+      }
+    });
+
+    requestAnimationFrame(render);
+  })();
+  </script>
+</body>
+</html>

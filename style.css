@@ -1,0 +1,1165 @@
+/* ==========================================================================
+   PANIC VS POISON: A STORY OF FEAR AND COEXISTENCE
+   Continuous Parallax Canvas & Animated Snake
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --color-panic: #EF4444;
+    /* Crimson Panic */
+    --color-poison: #34D399;
+    /* Serpentine Emerald */
+    --color-title: #EAE3D3;
+    /* Warm Ivory Parchment from Reference */
+    --text-light: #F8FAFC;
+    --text-muted: #94A3B8;
+    --font-title: 'DM Serif Display', 'Playfair Display', Georgia, serif;
+    --font-serif: 'Newsreader', serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+}
+
+html {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE / Edge */
+}
+
+body {
+    min-height: 100vh;
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE / Edge */
+    background-color: #03120B;
+    color: var(--text-light);
+    font-family: var(--font-body);
+}
+
+/* Universally hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+/* Fixed Continuous Parallax Background Canvas */
+.parallax-bg-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: #03120B;
+}
+
+/* (Snake container styling consolidated in section below) */
+
+.parallax-bg {
+    position: absolute;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 110%;
+    background-image: url('./assets/parallax_bg.jpg?v=hires_v2');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    animation: bg-breathe 22s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes bg-breathe {
+    0% {
+        transform: scale(1) translate(0, 0);
+        filter: brightness(0.96) contrast(1.02);
+    }
+
+    50% {
+        transform: scale(1.03) translate(-0.8%, -0.5%);
+        filter: brightness(1.02) contrast(1.06);
+    }
+
+    100% {
+        transform: scale(1.01) translate(0.5%, 0.4%);
+        filter: brightness(0.98) contrast(1.03);
+    }
+}
+
+.parallax-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 35%, rgba(2, 14, 8, 0.6) 85%, #020E08 100%);
+    pointer-events: none;
+}
+
+.parallax-particles {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.85;
+}
+
+/* ==========================================================================
+   SNAKE ENTRANCE ON HERO SCREEN (TRANSPARENT VIDEO)
+   [RESTORE NOTE] Previous sizing: width: clamp(340px, 36vw, 680px);
+   ========================================================================== */
+.snake-top-left-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 6;
+    pointer-events: none;
+    overflow: hidden;
+    line-height: 0;
+    will-change: transform, opacity;
+    opacity: 0;
+    transition: opacity 1.2s ease-out;
+}
+
+.snake-top-left-container.is-entered {
+    opacity: 1;
+}
+
+.snake-video-player,
+.snake-video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+    display: block;
+    background: transparent;
+    filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.85));
+}
+
+/* ==========================================================================
+   HERO / TOPIC NAME SECTION
+   ========================================================================== */
+#story-root {
+    position: relative;
+    z-index: 10;
+    min-height: 250vh;
+    /* Downward scroll room */
+}
+
+.hero-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.hero-content {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 1;
+    position: relative;
+    z-index: 12;
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+/* Topic Title (Editorial Serif matching user reference) */
+.topic-title {
+    font-family: var(--font-title);
+    font-size: clamp(4.2rem, 9.5vw, 8.2rem);
+    font-weight: 400;
+    line-height: 0.96;
+    letter-spacing: -0.015em;
+    color: var(--color-title);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.75rem;
+    text-shadow: 0 15px 45px rgba(0, 0, 0, 0.9);
+}
+
+.title-line {
+    display: block;
+}
+
+.title-vs {
+    font-family: var(--font-title);
+    font-size: 0.86em;
+    font-weight: 400;
+    color: var(--color-title);
+    margin-left: 0.04em;
+}
+
+.hero-subtitle {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+    color: #CBD5E1;
+    max-width: 620px;
+    line-height: 1.6;
+    margin-bottom: 3.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Scroll Cue */
+.scroll-cue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    animation: bounce-subtle 2.5s infinite ease-in-out;
+}
+
+.scroll-cue-line {
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(to bottom, #34D399, transparent);
+}
+
+@keyframes bounce-subtle {
+
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: translateY(8px);
+        opacity: 1;
+    }
+}
+
+/* ==========================================================================
+   SECTION 2: 2D LAYERED LANDSCAPE REVEAL & THE FRACTURE
+   Mountains -> Land -> Trees -> Homes -> The Crack (Human vs Serpent Border)
+   ========================================================================== */
+.landscape-screen {
+    position: relative;
+    z-index: 15;
+    min-height: 1500vh;
+    display: block;
+    padding: 0;
+}
+
+.landscape-sticky-stage {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom,
+            #000 0%,
+            #000 calc(100% - 200px),
+            rgba(0, 0, 0, 0.75) calc(100% - 120px),
+            rgba(0, 0, 0, 0.25) calc(100% - 40px),
+            transparent 100%);
+    mask-image: linear-gradient(to bottom,
+            #000 0%,
+            #000 calc(100% - 200px),
+            rgba(0, 0, 0, 0.75) calc(100% - 120px),
+            rgba(0, 0, 0, 0.25) calc(100% - 40px),
+            transparent 100%);
+}
+
+/* 2D Full-Screen Multi-Layered Stage */
+.landscape-layers-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: none;
+    will-change: transform, opacity, filter;
+    /* Subtle 70px black gradient fade at the very bottom edge */
+    -webkit-mask-image: linear-gradient(to bottom,
+            #000 0%,
+            #000 calc(100% - 70px),
+            rgba(0, 0, 0, 0.70) calc(100% - 35px),
+            transparent 100%);
+    mask-image: linear-gradient(to bottom,
+            #000 0%,
+            #000 calc(100% - 70px),
+            rgba(0, 0, 0, 0.70) calc(100% - 35px),
+            transparent 100%);
+}
+
+.landscape-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    object-position: center bottom;
+    display: block;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+    will-change: opacity, transform, clip-path;
+}
+
+.layer-mountains {
+    z-index: 1;
+}
+
+.layer-land {
+    z-index: 2;
+}
+
+.layer-trees {
+    z-index: 3;
+}
+
+.layer-homes {
+    z-index: 4;
+}
+
+.layer-crack {
+    z-index: 5;
+    filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.65));
+}
+
+.layer-panorama {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    object-position: center bottom;
+    z-index: 6;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-out;
+    will-change: opacity;
+}
+
+.landscape-layers-top-feather {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 180px;
+    background: linear-gradient(to bottom,
+            #03120B 0%,
+            rgba(3, 18, 11, 0.70) 35%,
+            rgba(3, 18, 11, 0.20) 70%,
+            transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+.landscape-layers-bottom-feather {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background: linear-gradient(to top,
+            #020C07 0%,
+            rgba(2, 12, 7, 0.70) 50%,
+            transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+/* Soft Atmospheric Bottom Fog / Vignette Blend with Canvas BG */
+.landscape-bottom-blend {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 220px;
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(3, 18, 11, 0.35) 30%,
+            rgba(3, 18, 11, 0.80) 70%,
+            #03120B 100%);
+    pointer-events: none;
+    z-index: 20;
+}
+
+/* Phase 1 Mountain Emergence Statement */
+.mountain-story-block {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(90vw, 780px);
+    text-align: center;
+    pointer-events: none;
+    z-index: 17;
+    opacity: 0;
+    will-change: opacity, transform, filter;
+}
+
+.mountain-headline {
+    font-family: var(--font-title);
+    font-size: clamp(2.3rem, 4.2vw, 3.6rem);
+    font-weight: 400;
+    color: var(--color-title);
+    line-height: 1.15;
+    margin-bottom: 1rem;
+    letter-spacing: -0.015em;
+    text-shadow: 0 3px 14px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+
+.mountain-subtext {
+    font-family: var(--font-serif);
+    font-size: clamp(1.1rem, 1.7vw, 1.4rem);
+    color: #CBD5E1;
+    font-weight: 400;
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 auto;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+/* Habitat Editorial Story Text (Split Floating Typography across the Divide) */
+.habitat-editorial-card {
+    position: absolute;
+    pointer-events: auto;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    z-index: 18;
+    will-change: opacity, transform, filter;
+}
+
+/* Left Narrative Block (Bottom Left Farmland) */
+.habitat-editorial-card.habitat-left {
+    left: clamp(2rem, 7vw, 7rem);
+    bottom: clamp(3rem, 16vh, 9rem);
+    max-width: min(88vw, 440px);
+    text-align: left;
+}
+
+/* Right Narrative Block (Shifted Up on the Right Side in Mountain/Sky clearing) */
+.habitat-editorial-card.habitat-right {
+    right: clamp(2rem, 8vw, 8rem);
+    top: clamp(4.5rem, 18vh, 14rem);
+    max-width: min(88vw, 540px);
+    text-align: left;
+}
+
+.habitat-title {
+    font-family: var(--font-title);
+    font-size: clamp(2.3rem, 4.0vw, 3.6rem);
+    font-weight: 400;
+    color: var(--color-title);
+    line-height: 1.1;
+    margin-bottom: 0.85rem;
+    letter-spacing: -0.015em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 1px 2px rgba(0, 0, 0, 0.95);
+}
+
+.habitat-description {
+    font-family: var(--font-serif);
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    color: #CBD5E1;
+    line-height: 1.55;
+    max-width: 500px;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.scroll-canvas-spacer {
+    height: 60vh;
+}
+
+.stage-blank-green {
+    position: relative;
+    z-index: 15;
+    min-height: 120vh;
+    width: 100%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .habitat-editorial-card.habitat-left {
+        left: 1.5rem;
+        bottom: 2rem;
+        max-width: 85vw;
+    }
+
+    .habitat-editorial-card.habitat-right {
+        right: 1.5rem;
+        top: 3.5rem;
+        max-width: 85vw;
+    }
+}
+
+/* ==========================================================================
+   Sequential Center-Aligned Data Beats (Scale, 58,000, 6 Deaths)
+   ========================================================================== */
+.landscape-stats-scrim {
+    position: absolute;
+    inset: 0;
+    background: 
+        linear-gradient(90deg, rgba(3, 16, 10, 0.45) 0%, rgba(3, 16, 10, 0.20) 35%, transparent 60%),
+        radial-gradient(circle at 50% 50%, rgba(6, 22, 14, 0.88) 0%, rgba(4, 18, 12, 0.82) 55%, rgba(3, 16, 10, 0.70) 100%);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 22;
+    will-change: opacity;
+}
+
+.stats-scrolly-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(96vw, 1200px);
+    z-index: 25;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-beat-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    will-change: opacity, transform, filter;
+}
+
+/* Kicker & Editorial Headline (Beat 1) */
+.stat-kicker {
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: #86A789;
+    margin-bottom: 0.75rem;
+    display: inline-block;
+}
+
+.stat-headline {
+    font-family: var(--font-title);
+    font-size: clamp(2.4rem, 4.4vw, 3.8rem);
+    font-weight: 400;
+    color: #F8FAF7;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin-bottom: 2.5rem;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.95);
+}
+
+/* Beat 1 Dual Grid (Donut Gauge + Statement) */
+.stat-dual-grid {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(2.5rem, 6vw, 4.5rem);
+    max-width: 800px;
+    width: 100%;
+}
+
+.donut-gauge-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-gauge-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+}
+
+.donut-gauge-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 2;
+}
+
+.gauge-ratio {
+    font-family: var(--font-title);
+    font-size: 2.15rem;
+    font-weight: 400;
+    color: #FAFAF7;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.gauge-sub {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: #94A3B8;
+    text-transform: lowercase;
+}
+
+.stat-statement {
+    font-family: var(--font-serif);
+    font-size: clamp(1.25rem, 1.9vw, 1.6rem);
+    color: #F1F5F9;
+    line-height: 1.55;
+    text-align: left;
+    max-width: 460px;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95);
+}
+
+.highlight-terracotta {
+    color: #D0482B;
+    font-weight: 600;
+}
+
+/* Beats 2 & 3: Giant Editorial Numbers */
+.stat-big-number {
+    font-family: 'DM Serif Display', 'Playfair Display', serif;
+    font-size: clamp(6.2rem, 14vw, 11rem);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.015em;
+    margin-bottom: 0.85rem;
+    text-shadow: 0 10px 45px rgba(0, 0, 0, 0.98), 0 2px 10px rgba(0, 0, 0, 0.95);
+}
+
+.stat-big-number.terracotta {
+    color: #D0482B;
+}
+
+.stat-big-number.ivory {
+    color: #F5F5ED;
+}
+
+.stat-big-label {
+    font-family: var(--font-sans);
+    font-size: clamp(1.2rem, 1.9vw, 1.55rem);
+    color: #9BA99E;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    margin-top: 0.4rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+}
+
+/* ==========================================================================
+   BEAT 4: MORTALITY CHART OVERLAY (Inline over landscape)
+   ========================================================================== */
+.beat-chart {
+    width: min(96vw, 1180px) !important;
+    max-width: 1180px;
+}
+
+.beat-chart .mortality-chart-iframe {
+    width: 100%;
+    height: 86vh;
+    max-height: 840px;
+    border: none;
+    display: block;
+    background: transparent;
+    border-radius: 0;
+    overflow: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.beat-chart .mortality-chart-iframe::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+@media (max-width: 768px) {
+    .beat-chart .mortality-chart-iframe {
+        height: 78vh;
+        max-height: 700px;
+    }
+}
+
+@media (max-width: 640px) {
+    .stat-dual-grid {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .stat-statement {
+        text-align: center;
+    }
+
+    .beat-chart {
+        width: 100vw !important;
+    }
+
+    .beat-chart .mortality-chart-iframe {
+        height: 65vh;
+        max-height: 600px;
+    }
+}
+
+/* ==========================================================================
+   BEAT 5: NATURAL DISASTER COMPARISON (Editorial Statement)
+   ========================================================================== */
+.beat-disaster {
+    width: min(94vw, 1260px) !important;
+    max-width: 1260px;
+    padding: 2.5rem 1.5rem;
+    z-index: 28;
+}
+
+.stat-disaster-text {
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: clamp(1.65rem, 2.55vw, 2.75rem);
+    font-weight: 400;
+    line-height: 1.45;
+    color: #F8FAF7;
+    text-align: center;
+    letter-spacing: -0.015em;
+    max-width: 1220px;
+    margin: 0 auto;
+    text-shadow: 
+        0 6px 32px rgba(0, 0, 0, 0.98),
+        0 2px 10px rgba(0, 0, 0, 0.95);
+}
+
+.stat-disaster-text .highlight-disaster {
+    color: #E05338;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    text-shadow: 
+        0 0 35px rgba(224, 83, 56, 0.45),
+        0 2px 12px rgba(0, 0, 0, 0.98);
+}
+
+@media (max-width: 768px) {
+    .disaster-br {
+        display: none;
+    }
+
+    .stat-disaster-text {
+        font-size: clamp(1.5rem, 4.8vw, 2.1rem);
+        line-height: 1.4;
+    }
+}
+
+/* ==========================================================================
+   PADDY FIELD ENCOUNTER SCENE (Page scroll from below previous image)
+   ========================================================================== */
+.paddy-scene-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 23;
+    opacity: 0;
+    visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    will-change: transform, opacity;
+    transform: translate3d(0, 16vh, 0);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 50px, black 160px, black calc(100% - 160px), rgba(0, 0, 0, 0.4) calc(100% - 50px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 50px, black 160px, black calc(100% - 160px), rgba(0, 0, 0, 0.4) calc(100% - 50px), transparent 100%);
+}
+
+.paddy-scene-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 50%;
+    opacity: 0.95;
+    filter: brightness(0.98) contrast(1.04);
+}
+
+.paddy-scene-blend {
+    position: absolute;
+    inset: 0;
+    /* Soft atmospheric dark feather so edges blend into canvas */
+    background: 
+        radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(2, 12, 7, 0.20) 75%, rgba(2, 12, 7, 0.65) 100%),
+        linear-gradient(to bottom, 
+            transparent 0%, 
+            rgba(2, 12, 7, 0.45) 60px, 
+            transparent 140px, 
+            transparent calc(100% - 140px), 
+            rgba(2, 12, 7, 0.45) calc(100% - 60px), 
+            transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.paddy-seam-gradient {
+    display: none;
+}
+
+/* Blackout Scrim: Focused dark backdrop where the narrative text appears (~20-30% image visibility in text zone) */
+.paddy-story-scrim {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0, 0, 0, 0.93) 0%, rgba(0, 0, 0, 0.84) 45%, rgba(0, 0, 0, 0.62) 80%, rgba(0, 0, 0, 0.45) 100%);
+    pointer-events: none;
+    z-index: 22;
+    opacity: 0;
+    will-change: opacity;
+}
+
+.paddy-story-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 25;
+    padding: 2rem;
+}
+
+.paddy-story-card {
+    position: relative;
+    max-width: 920px;
+    margin: 0 auto;
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    color: #F8FAF7;
+    text-align: center;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 2.5rem 2rem;
+    opacity: 0;
+    transform: translateY(20px);
+    will-change: opacity, transform;
+}
+
+.paddy-story-card .intro-line-lead {
+    font-size: clamp(1.4rem, 2.7vw, 2.2rem);
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95);
+}
+
+.paddy-story-card .intro-line-stat {
+    font-size: clamp(2.8rem, 6.0vw, 4.8rem);
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.98);
+}
+
+.paddy-story-card .stat-highlight {
+    color: #E05338;
+    display: inline-block;
+    margin-right: 0.25rem;
+    text-shadow: 0 0 35px rgba(224, 83, 56, 0.55), 0 4px 16px rgba(0, 0, 0, 0.98);
+}
+
+.paddy-story-card .intro-line-question {
+    font-size: clamp(1.3rem, 2.4vw, 1.95rem);
+    font-weight: 600;
+    color: #F3F4F6;
+    margin-top: 0.35rem;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95);
+}
+
+.paddy-story-card .intro-line-pathways {
+    font-size: clamp(1.15rem, 2.0vw, 1.6rem);
+    font-weight: 600;
+    color: #E5A93C;
+    letter-spacing: 0.01em;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95);
+}
+
+/* Beat 7: Clean Animated Sankey Stage Overlay */
+.paddy-sankey-stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 28;
+    pointer-events: none;
+    opacity: 0;
+    padding: 1.5rem;
+    will-change: opacity, transform;
+}
+
+.paddy-sankey-card {
+    width: min(98vw, 1420px);
+    height: min(92vh, 780px);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 36px;
+    overflow: hidden;
+    pointer-events: auto;
+    position: relative;
+    -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, black 50%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.20) 86%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, black 50%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.20) 86%, transparent 100%);
+}
+
+.paddy-sankey-card .sankey-chart-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: transparent;
+}
+
+/* ==========================================================================
+   SECTION 3: EDITORIAL CHAPTER - MYTHS DON'T CURE VENOM
+   Matches User Reference Typography (Google Sans Flex, Italic + Bold)
+   ========================================================================== */
+.myths-chapter-screen {
+    position: relative;
+    z-index: 20;
+    min-height: auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5.5rem 1.5rem 4.5rem 1.5rem;
+    background: transparent;
+}
+
+.myths-chapter-screen::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(94vw, 1100px);
+    height: 88%;
+    background: radial-gradient(ellipse 68% 58% at 50% 50%, rgba(4, 22, 14, 0.48) 0%, rgba(3, 16, 10, 0.25) 45%, rgba(2, 12, 7, 0.05) 75%, transparent 100%);
+    filter: blur(36px);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.myths-editorial-container {
+    max-width: 920px;
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Banner Block: Reference Image Match - Compact & Refined */
+.myths-banner-block {
+    margin-bottom: 1.35rem;
+}
+
+.myths-line-lead {
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: clamp(2.0rem, 3.8vw, 3.2rem);
+    font-weight: 300;
+    font-style: italic;
+    color: #E2E8F0;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin-bottom: 0.15rem;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+}
+
+.myths-lead-italic {
+    font-style: italic;
+}
+
+.highlight-venom {
+    color: #EF4444;
+    font-weight: 500;
+    font-style: italic;
+    text-shadow: 0 0 25px rgba(239, 68, 68, 0.45);
+}
+
+.myths-line-headline {
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: clamp(2.8rem, 5.8vw, 4.8rem);
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 0;
+    text-shadow: 0 6px 30px rgba(0, 0, 0, 0.95);
+}
+
+/* Thesis & Improved Question Block - Compact */
+.myths-thesis-block {
+    max-width: 720px;
+    margin: 0 auto 1.4rem auto;
+}
+
+.myths-question-text {
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+    font-weight: 500;
+    color: #F1F5F9;
+    line-height: 1.42;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+    text-shadow: 0 3px 15px rgba(0, 0, 0, 0.85);
+}
+
+.myths-sub-text {
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: clamp(0.95rem, 1.35vw, 1.15rem);
+    font-weight: 400;
+    color: #34D399;
+    line-height: 1.5;
+    letter-spacing: 0.005em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Scroll Prompt */
+.myths-scroll-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: #94A3B8;
+    margin-top: 0.4rem;
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+}
+
+.myths-prompt-text {
+    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.myths-prompt-arrow {
+    animation: prompt-bounce 2.2s ease-in-out infinite;
+    color: #34D399;
+}
+
+@keyframes prompt-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(6px);
+    }
+}
+
+/* ==========================================================================
+   SECTION 4: COUNTERFACTUAL SANKEY STAGE (100% HOSPITAL CARE)
+   ========================================================================== */
+.counterfactual-screen {
+    position: relative;
+    z-index: 20;
+    min-height: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 1.5rem 4rem 1.5rem;
+    margin-top: -1.6rem;
+    background: transparent;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 30px, black 80px, black calc(100% - 60px), rgba(0, 0, 0, 0.4) calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 30px, black 80px, black calc(100% - 60px), rgba(0, 0, 0, 0.4) calc(100% - 20px), transparent 100%);
+}
+
+.counterfactual-container {
+    width: 100%;
+    max-width: 1440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.counterfactual-sankey-card {
+    width: min(98vw, 1420px);
+    height: min(92vh, 780px);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 36px;
+    overflow: hidden;
+    position: relative;
+    -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, black 50%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.20) 86%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, black 50%, rgba(0, 0, 0, 0.85) 68%, rgba(0, 0, 0, 0.20) 86%, transparent 100%);
+}
+
+.counterfactual-sankey-card .sankey-counterfactual-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: transparent;
+}

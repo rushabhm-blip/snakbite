@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panic vs Poison | A Story of Fear and Coexistence</title>
+    
+    <!-- Google Fonts: Google Sans Flex, DM Serif Display, Playfair Display, Prata, Newsreader, Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Prata&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css?v=feather_blur_v2">
+</head>
+<body class="story-body">
+
+    <!-- Fixed Continuous Parallax Background Canvas -->
+    <div class="parallax-bg-wrapper" aria-hidden="true">
+        <div class="parallax-bg" id="parallax-bg"></div>
+        <canvas class="parallax-particles" id="ambient-particles"></canvas>
+        <div class="parallax-vignette"></div>
+    </div>
+
+    <!-- Transparent Animated Video Snake (New Upload: Black snake moving across hero) -->
+    <!-- [RESTORE POINT] Previous snake asset: assets/snake_animated.webm -->
+    <div class="snake-top-left-container" id="snake-container">
+        <video id="snake-video" class="snake-video-player" muted playsinline autoplay loop preload="auto">
+            <source src="assets/snake_black_moving.webm?v=black_v1" type="video/webm">
+            <!-- Fallback to original uploaded MP4 if WebM is unsupported -->
+            <source src="Black_snake_moving_on_background_202609070007.mp4" type="video/mp4">
+            Your browser does not support video playback.
+        </video>
+    </div>
+
+    <!-- Main Editorial Scrollytelling Flow -->
+    <main class="story-container" id="story-root">
+        <!-- SCREEN 1: HERO TITLE & STAGE -->
+        <section class="hero-screen">
+            <div class="hero-content">
+                <h1 class="topic-title" id="topic-title">
+                    <span class="title-line">Panic <span class="title-vs">vs</span></span>
+                    <span class="title-line">Poison</span>
+                </h1>
+
+                <p class="hero-subtitle">
+                    A Story of Fear, Venom, and Coexistence
+                </p>
+
+                <div class="scroll-cue">
+                    <span class="scroll-cue-text">Scroll to begin the encounter</span>
+                    <div class="scroll-cue-line"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: THE EMERGENCE & THE FRACTURE (HUMAN VS SNAKE HABITAT) -->
+        <section class="landscape-screen" id="landscape-screen">
+            <div class="landscape-sticky-stage" id="landscape-sticky-stage">
+                
+                <!-- 2D Layered Stage: Reveals Mountains -> Land -> Trees -> Homes -> Crack -->
+                <div class="landscape-layers-container" id="landscape-layers-container">
+                    <img id="layer-mountains" class="landscape-layer layer-mountains" src="./assets/layers_clean/1_mountains.webp?v=blend_v2" alt="Mountains">
+                    <img id="layer-land" class="landscape-layer layer-land" src="./assets/layers_clean/2_land.webp?v=blend_v2" alt="Land">
+                    <img id="layer-trees" class="landscape-layer layer-trees" src="./assets/layers_clean/3_trees.webp?v=blend_v2" alt="Trees">
+                    <img id="layer-homes" class="landscape-layer layer-homes" src="./assets/layers_clean/4_homes.webp?v=blend_v2" alt="Homes">
+                    <img id="layer-crack" class="landscape-layer layer-crack" src="./assets/layers_clean/5_crack.webp?v=blend_v2" alt="The Fracture">
+                    <img id="layer-panorama" class="landscape-layer layer-panorama" src="./assets/stitched_panorama.webp?v=feather_v3" alt="Continuous Landscape Panorama">
+                    <!-- Top & Bottom feather blends to eliminate any abrupt boundary -->
+                    <div class="landscape-layers-top-feather" aria-hidden="true"></div>
+                    <div class="landscape-layers-bottom-feather" aria-hidden="true"></div>
+                </div>
+
+                <!-- Soft Atmospheric Bottom Fog / Vignette Blend with Canvas BG -->
+                <div class="landscape-bottom-blend" aria-hidden="true"></div>
+
+                <!-- Paddy Field Encounter Scene (Scrolls up from below previous image like a data scrolly) -->
+                <div class="paddy-scene-stage" id="paddy-scene-stage" aria-hidden="true">
+                    <img id="layer-paddy" class="paddy-scene-img" src="./assets/paddy_field_scene.webp?v=man_woman_snake_v1" alt="Monsoon Paddy Field Snakebite Encounter Scene">
+                    <div class="paddy-scene-blend" aria-hidden="true"></div>
+                    <div class="paddy-seam-gradient" aria-hidden="true"></div>
+                    <div class="paddy-story-scrim" id="paddy-story-scrim" aria-hidden="true"></div>
+
+                    <!-- Beat 6: Pathways Narrative Text Overlay -->
+                    <div class="paddy-story-overlay" id="paddy-story-overlay">
+                        <div class="paddy-story-card" id="paddy-story-card">
+                            <p class="intro-line-lead">For every 100 snakebites,</p>
+                            <h2 class="intro-line-stat"><span class="stat-highlight">21</span> lives are lost.</h2>
+                            <p class="intro-line-question">Is venom the only reason?</p>
+                            <p class="intro-line-pathways">Let’s follow the pathways.</p>
+                        </div>
+                    </div>
+
+                    <!-- Beat 7: Pure Animated Sankey Diagram Overlay -->
+                    <div class="paddy-sankey-stage" id="paddy-sankey-stage">
+                        <div class="paddy-sankey-card">
+                            <iframe
+                                src="sankey_chart.html?v=feather_v2"
+                                title="The Patient Survival Pathway Sankey Diagram"
+                                class="sankey-chart-iframe"
+                                id="sankey-iframe"
+                                scrolling="no">
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 1 Mountain Emergence Narrative Beat -->
+                <div class="mountain-story-block" id="mountain-story">
+                    <h2 class="mountain-headline">
+                        India is the snakebite capital of the world.
+                    </h2>
+                    <p class="mountain-subtext">
+                        The crisis is not the venom alone — it's the fear that surrounds it.
+                    </p>
+                </div>
+
+                <!-- Narrative Text: Section 2 Divide Editorial Elements -->
+                <!-- Left: "Same land, Different Fears" -->
+                <div class="habitat-editorial-card habitat-left" id="habitat-left">
+                    <h2 class="habitat-title habitat-title-left">
+                        Same land,<br>Different Fears.
+                    </h2>
+                </div>
+
+                <!-- Right: Shifted up into the right hillside / sky -->
+                <div class="habitat-editorial-card habitat-right" id="habitat-right">
+                    <h2 class="habitat-title habitat-title-right">
+                        A shared land,<br>a growing conflict.
+                    </h2>
+
+                    <p class="habitat-description habitat-desc-right">
+                        Every year, snakes and humans cross paths.<br>Too often, it ends in tragedy.
+                    </p>
+                </div>
+
+                <!-- Soft Dark Atmosphere Scrim for Data Beats (Eliminates harsh textures behind text) -->
+                <div class="landscape-stats-scrim" id="stats-scrim" aria-hidden="true"></div>
+
+                <!-- Sequential Center-Aligned Data Beats Container -->
+                <div class="stats-scrolly-container" id="stats-scrolly-container" aria-live="polite">
+
+                    <!-- BEAT 1: A Crisis Measured in Silence (1 in 2) -->
+                    <div class="stat-beat-card beat-scale" id="stat-beat-1">
+                        <span class="stat-kicker">The scale</span>
+                        <h2 class="stat-headline">A crisis measured in silence</h2>
+                        <div class="stat-dual-grid">
+                            <div class="donut-gauge-wrapper">
+                                <svg class="donut-gauge-svg" viewBox="0 0 160 160" width="150" height="150" aria-hidden="true">
+                                    <!-- Background Dark Slate Track (Left Half) -->
+                                    <circle cx="80" cy="80" r="66" fill="none" stroke="#2B3530" stroke-width="11" />
+                                    <!-- Highlight Terracotta Track (Right Half: 50%) -->
+                                    <circle cx="80" cy="80" r="66" fill="none" stroke="#D0482B" stroke-width="11"
+                                            stroke-dasharray="207.3 207.3" stroke-dashoffset="0"
+                                            transform="rotate(-90 80 80)" stroke-linecap="round" />
+                                </svg>
+                                <div class="donut-gauge-inner">
+                                    <span class="gauge-ratio">1 / 2</span>
+                                    <span class="gauge-sub">of global deaths</span>
+                                </div>
+                            </div>
+                            <p class="stat-statement">
+                                One in every two people who die of a snakebite
+                                <span class="highlight-terracotta">anywhere in the world</span> die
+                                right here, in India.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- BEAT 2: 58,000 Lives Lost (Counting Animation) -->
+                    <div class="stat-beat-card beat-annual" id="stat-beat-2">
+                        <div class="stat-big-number terracotta" id="counter-58k">0</div>
+                        <p class="stat-big-label">lives lost every year</p>
+                    </div>
+
+                    <!-- BEAT 3: 6 Deaths Every Hour -->
+                    <div class="stat-beat-card beat-hourly" id="stat-beat-3">
+                        <div class="stat-big-number terracotta">6</div>
+                        <p class="stat-big-label">deaths, every single hour</p>
+                    </div>
+
+                    <!-- BEAT 4: Mortality Spectrum Chart (Inline over landscape) -->
+                    <div class="stat-beat-card beat-chart" id="stat-beat-4">
+                        <iframe
+                            src="Snakebite-mortality.html?v=smooth_bars_v2"
+                            title="The Silent Crisis: Snakebite Mortality in Context"
+                            class="mortality-chart-iframe"
+                            id="mortality-iframe"
+                            scrolling="no">
+                        </iframe>
+                    </div>
+
+                    <!-- BEAT 5: Natural Disaster Comparison (Editorial Statement) -->
+                    <div class="stat-beat-card beat-disaster" id="stat-beat-5">
+                        <p class="stat-disaster-text">
+                            Snakebites kill more people in India than almost <span class="highlight-disaster">any other<br class="disaster-br"> natural disaster</span>, remaining largely invisible.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: EDITORIAL STATEMENT - MYTHS DON'T CURE VENOM -->
+        <section class="myths-chapter-screen" id="myths-section">
+            <div class="myths-editorial-container">
+                <div class="myths-banner-block">
+                    <p class="myths-line-lead">
+                        <span class="myths-lead-italic">Myths Don't Cure </span><span class="highlight-venom">Venom.</span>
+                    </p>
+                    <h2 class="myths-line-headline">Antivenom Does !</h2>
+                </div>
+
+                <div class="myths-thesis-block">
+                    <p class="myths-question-text">
+                        If every patient received the right antivenom within the critical window, how many lives could be saved?
+                    </p>
+                    <p class="myths-sub-text">
+                        What happens when timely hospital care replaces faith and delay? Let’s trace the alternate pathway.
+                    </p>
+                </div>
+
+                <div class="myths-scroll-prompt">
+                    <span class="myths-prompt-text">Scroll to explore the alternate pathway</span>
+                    <div class="myths-prompt-arrow" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: THE COUNTERFACTUAL SANKEY - 100% DIRECT HOSPITAL CARE -->
+        <section class="counterfactual-screen" id="counterfactual-stage">
+            <div class="counterfactual-container">
+                <div class="counterfactual-sankey-card">
+                    <iframe
+                        src="sankey_counterfactual.html?v=shifted_v3"
+                        title="Counterfactual Pathway: 100% Hospital Care Saves Lives"
+                        class="sankey-counterfactual-iframe"
+                        id="counterfactual-iframe"
+                        scrolling="no">
+                    </iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- Downward scroll space for subsequent story stages -->
+        <div class="scroll-canvas-spacer" id="next-stages-anchor"></div>
+    </main>
+
+    <script src="script.js?v=myths_v1"></script>
+</body>
+</html>
